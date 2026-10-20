@@ -58,13 +58,16 @@ During development:
 - The historical Splunk search returned four Event ID 4625 events.
 - The detector output for the available historical records was `failed_attempts: 2`, `threshold: 5`, `window_minutes: 15`, `alert: false`.
 - Newly generated local Windows Event ID 4625 events were visible in Windows Event Viewer/PowerShell but were not consistently appearing in Splunk during the troubleshooting session.
-
 ## Evidence screenshots
 
-Add screenshots that do not expose secrets or personal account details, for example:
-- `evidence/workflow-overview.png`
-- `evidence/splunk-search-results-redacted.png`
-- `evidence/detector-below-threshold-redacted.png`
-- `evidence/synthetic-alert-email-redacted.png`
+The repository includes screenshots documenting the n8n workflow, detection results, Splunk searches, and PowerShell investigation steps.
 
-Do not include raw passwords, OAuth tokens, API keys, session cookies, or unredacted credential settings.
+Evidence is organised by tool:
+
+- `evidence/n8n/` — workflow overview, detection output, and workflow execution.
+- `evidence/splunk/` — historical Windows Event ID 4625 results and event-code distribution.
+- `evidence/powershell/` — Windows Security event checks and troubleshooting evidence.
+
+Screenshots are provided for transparency and reproducibility. Some screenshots reflect troubleshooting during development; they should not be interpreted as proof that live Splunk-to-n8n alerting is fully operational.
+
+**Security requirements:** Do not publish passwords, OAuth tokens, API keys, session cookies, personal account details, or unredacted credential settings. Review screenshots and workflow exports before publishing.
