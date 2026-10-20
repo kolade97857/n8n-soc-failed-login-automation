@@ -1,0 +1,295 @@
+{
+  "name": "SOC - Splunk Failed Login Log Automation (Sanitized Template)",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "c0cd141d-a7da-49a8-b2a2-751784a77791",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "accc1124-a15c-4e37-b2d2-a9ffa596e46c",
+              "leftValue": "={{ $json.alert }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        448,
+        0
+      ],
+      "id": "0eb919a2-0fd6-4890-8ad0-2e58d6fc214b",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c3936b5c-b054-4cbe-81d1-397a3a2aee4f",
+              "name": "severity",
+              "value": "={{ $json.failed_attempts >= 5 ? 'High' : 'Medium' }}",
+              "type": "string"
+            },
+            {
+              "id": "c3f33e78-d4f9-40b5-a763-ecaea42d67af",
+              "name": "alert_title",
+              "value": "={{ 'Repeated Failed Login Attempts - ' + $json.username }}",
+              "type": "string"
+            },
+            {
+              "id": "8064e55b-e0fd-4725-b8db-9804cda83961",
+              "name": "investigation_summary",
+              "value": "={{ 'Host: ' + $json.host + '; User: ' + $json.username + '; Source IP: ' + $json.source_ip + '; Failed attempts: ' + $json.failed_attempts + ' within ' + $json.window_minutes + ' minutes.' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        528,
+        -96
+      ],
+      "id": "9912fae7-8487-41d3-98b0-d149a16e2b39",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "sendTo": "YOUR_ALERT_EMAIL@example.com",
+        "subject": "[SOC ALERT] Multiple Failed Login Attempts",
+        "message": "={{   'SOC SECURITY ALERT\\n\\n' +   'Severity: ' + $json.severity + '\\n' +   'Alert: ' + $json.alert_title + '\\n' +   'Username: ' + $json.username + '\\n' +   'Source IP: ' + $json.source_ip + '\\n' +   'Failed Attempts: ' + $json.failed_attempts + '\\n\\n' +   'Investigation Summary: ' + $json.investigation_summary }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        752,
+        -96
+      ],
+      "id": "4873f417-4e64-4f67-b56d-7c33361d1b6d",
+      "name": "Send a message"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5f3251e1-ac49-4613-bba1-7c9203e2d785",
+              "name": "status",
+              "value": "No alert - below threshold",
+              "type": "string"
+            },
+            {
+              "id": "dd01fff4-1543-42fa-a989-baca5f7ad503",
+              "name": "reason",
+              "value": "Failed login attempts did not meet the threshold of 5.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        672,
+        96
+      ],
+      "id": "ab9290b7-827f-4043-8249-976148bde8f3",
+      "name": "Edit Fields2"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://YOUR-SPLUNK-HOST:8089/services/search/jobs",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "search",
+              "value": "search index=main sourcetype=\"WinEventLog:Security\" EventCode=4625 earliest=-60d"
+            },
+            {
+              "name": "output_mode",
+              "value": "json"
+            }
+          ]
+        },
+        "options": {
+          "allowUnauthorizedCerts": true
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        704,
+        240
+      ],
+      "id": "30d4e6d8-2005-469f-b11c-02a5f896781e",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "url": "=https://YOUR-SPLUNK-HOST:8089/services/search/jobs/{{$json.sid}}/results",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "output_mode",
+              "value": "json"
+            }
+          ]
+        },
+        "options": {
+          "allowUnauthorizedCerts": true,
+          "queryParameterArrays": "brackets"
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        928,
+        240
+      ],
+      "id": "82dac8c9-5e2a-42fe-b04b-e1c3c3243825",
+      "name": "HTTP Request1"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst response = $input.first().json;\n\n// Splunk returns the events inside the \"results\" array.\nconst events = response.results || [];\n\nconst threshold = 5;\nconst windowMinutes = 15;\n\nif (events.length === 0) {\n  return [{\n    json: {\n      alert: false,\n      failed_attempts: 0,\n      threshold,\n      window_minutes: windowMinutes,\n      reason: \"No failed-login events returned by Splunk\"\n    }\n  }];\n}\n\n// Count failed logins by host, username and source IP.\nconst groups = {};\n\nfor (const event of events) {\n  const message = event.Message || \"\";\n\n  const username =\n    message.match(/Account Name:\\s*([^\\r\\n]+)/i)?.[1]?.trim() ||\n    event.Account_Name ||\n    \"Unknown\";\n\n  const host = event.host || \"Unknown\";\n\n  const sourceIp =\n    message.match(/Source Network Address:\\s*([^\\r\\n]+)/i)?.[1]?.trim() ||\n    event.Source_Network_Address ||\n    \"Unknown\";\n\n  const time = Date.parse(event._time || event.event_time);\n\n  const key = `${host}|${username}|${sourceIp}`;\n\n  if (!groups[key]) {\n    groups[key] = { host, username, source_ip: sourceIp, times: [] };\n  }\n\n  if (Number.isFinite(time)) {\n    groups[key].times.push(time);\n  }\n}\n\nconst detections = [];\n\nfor (const group of Object.values(groups)) {\n  group.times.sort((a, b) => a - b);\n\n  let left = 0;\n  let maxCount = 0;\n\n  for (let right = 0; right < group.times.length; right++) {\n    while (\n      group.times[right] - group.times[left] >\n      windowMinutes * 60 * 1000\n    ) {\n      left++;\n    }\n\n    maxCount = Math.max(maxCount, right - left + 1);\n  }\n\n  detections.push({\n    host: group.host,\n    username: group.username,\n    source_ip: group.source_ip,\n    failed_attempts: maxCount,\n    threshold,\n    window_minutes: windowMinutes,\n    alert: maxCount >= threshold\n  });\n}\n\nreturn detections.map(detection => ({ json: detection }));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1040,
+        192
+      ],
+      "id": "7e3a0922-454c-44e9-a3a6-58517e9c6131",
+      "name": "Code in JavaScript1"
+    }
+  ],
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        []
+      ]
+    },
+    "Edit Fields2": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "46783553-7e5c-4e28-b73f-ff3b89d4f811"
+}
